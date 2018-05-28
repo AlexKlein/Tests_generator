@@ -1,18 +1,18 @@
 begin
-    execute immediate('drop procedure uat_testuser.uat_testgenerate');
+    execute immediate('drop procedure test_generator');
 exception
     when others then
         null;
 end;
 /
-create or replace procedure uat_testuser.uat_testgenerate
+create or replace procedure test_generator
 /******************************* ALFA HISTORY *******************************************\
-Дата        Автор            ID       Описание
+Р”Р°С‚Р°        РђРІС‚РѕСЂ            ID       РћРїРёСЃР°РЅРёРµ
 ----------  ---------------  -------- ----------------------------------------------------
-24.05.2018  Клейн А.М.      [000000]  Создание процедуры.
+24.05.2018  РљР»РµР№РЅ Рђ.Рњ.      [000000]  РЎРѕР·РґР°РЅРёРµ РїСЂРѕС†РµРґСѓСЂС‹.
 \******************************* ALFA HISTORY *******************************************/
 as
-    -- сбор списка объекктов последней поставки
+    -- СЃР±РѕСЂ СЃРїРёСЃРєР° РѕР±СЉРµРєРєС‚РѕРІ РїРѕСЃР»РµРґРЅРµР№ РїРѕСЃС‚Р°РІРєРё
     cursor cToObjectList 
         is
     select distinct tst.owner,
@@ -24,7 +24,7 @@ as
                    'view/synonym'
            end as obj_type,
            max(release_number) as release_number
-    from   uat_testuser.uat_test_table_release tst
+    from   t_test_release tst
     left outer join all_tables tbl
                  on tst.owner      = tbl.owner and
                     tst.table_name = tbl.table_name
@@ -45,23 +45,23 @@ as
              tst.owner,
              tst.table_name;
 
-    vSQL varchar2(4000);  -- подготавливаемый SQL скрипт проверки
+    vSQL varchar2(4000);  -- РїРѕРґРіРѕС‚Р°РІР»РёРІР°РµРјС‹Р№ SQL СЃРєСЂРёРїС‚ РїСЂРѕРІРµСЂРєРё
     
 begin
 
-    -- очистка предыдущей генерации
-     delete from uat_testuser.uat_test_standard
+    -- РѕС‡РёСЃС‚РєР° РїСЂРµРґС‹РґСѓС‰РµР№ РіРµРЅРµСЂР°С†РёРё
+     delete from t_test
      where n_test in (41, 42, 43);
      
      commit;
 
-    -- выбор объектов и создание для них скриптов
+    -- РІС‹Р±РѕСЂ РѕР±СЉРµРєС‚РѕРІ Рё СЃРѕР·РґР°РЅРёРµ РґР»СЏ РЅРёС… СЃРєСЂРёРїС‚РѕРІ
     for r in cToObjectList loop
     
-        -- первоначальная очистка скрипта
+        -- РїРµСЂРІРѕРЅР°С‡Р°Р»СЊРЅР°СЏ РѕС‡РёСЃС‚РєР° СЃРєСЂРёРїС‚Р°
         vSQL := null;
         
-        -- сбор скрипта проверки соответствия структуры и ЛМ
+        -- СЃР±РѕСЂ СЃРєСЂРёРїС‚Р° РїСЂРѕРІРµСЂРєРё СЃРѕРѕС‚РІРµС‚СЃС‚РІРёСЏ СЃС‚СЂСѓРєС‚СѓСЂС‹ Рё Р›Рњ
         vSQL := 'select src.column_name   as column_name_real, '  ||chr(10)|| 
                 '       trg.column_name   as column_name_lm, '    ||chr(10)|| 
                 '       src.data_type_all as data_type_all_real, '||chr(10)|| 
@@ -99,25 +99,25 @@ begin
                 '       decode(src.nullable,      trg.nullable,    0, 1) = 1 or '    ||chr(10)||
                 '       decode(src.comments,      trg.comments,    0, 1) = 1';
 
-        -- вставка в стандартные тесты
-        insert into uat_testuser.uat_test_standard (table_name,
-                                                    test_desc,
-                                                    test_sql,
-                                                    parent_table_name,
-                                                    n_test,
-                                                    column_name) values (r.table_name,
-                                                                         'Проверка на совпадение сущности с ЛМ',
-                                                                         vSQL,
-                                                                         null,
-                                                                         41,
-                                                                         null);
+        -- РІСЃС‚Р°РІРєР° РІ СЃС‚Р°РЅРґР°СЂС‚РЅС‹Рµ С‚РµСЃС‚С‹
+        insert into t_test (table_name,
+                            test_desc,
+                            test_sql,
+                            parent_table_name,
+                            n_test,
+                            column_name) values (r.table_name,
+                                                 'РџСЂРѕРІРµСЂРєР° РЅР° СЃРѕРІРїР°РґРµРЅРёРµ СЃСѓС‰РЅРѕСЃС‚Рё СЃ Р›Рњ',
+                                                 vSQL,
+                                                 null,
+                                                 41,
+                                                 null);
         
         commit;
         
-        -- проверка на тип объекта, т.к. индексы есть только у таблиц
+        -- РїСЂРѕРІРµСЂРєР° РЅР° С‚РёРї РѕР±СЉРµРєС‚Р°, С‚.Рє. РёРЅРґРµРєСЃС‹ РµСЃС‚СЊ С‚РѕР»СЊРєРѕ Сѓ С‚Р°Р±Р»РёС†
         if r.obj_type = 'table' then
             
-            -- сбор скрипта проверки соответствия индекса и ЛМ
+            -- СЃР±РѕСЂ СЃРєСЂРёРїС‚Р° РїСЂРѕРІРµСЂРєРё СЃРѕРѕС‚РІРµС‚СЃС‚РІРёСЏ РёРЅРґРµРєСЃР° Рё Р›Рњ
             vSQL := 'select src.index_name, '   ||chr(10)||
                     '       src.column_name, '  ||chr(10)||
                     '       trg.column_name '   ||chr(10)||
@@ -137,22 +137,22 @@ begin
                     '             on src.column_name = trg.column_name '          ||chr(10)||
                     'where decode(src.column_name, trg.column_name, 0, 1) = 1';
 
-            -- вставка в стандартные тесты
-            insert into uat_testuser.uat_test_standard (table_name,
-                                                        test_desc,
-                                                        test_sql,
-                                                        parent_table_name,
-                                                        n_test,
-                                                        column_name) values (r.table_name,
-                                                                             'Проверка на совпадение индекса с ЛМ',
-                                                                             vSQL,
-                                                                             null,
-                                                                             42,
-                                                                             null);
-                                                                             
+            -- РІСЃС‚Р°РІРєР° РІ СЃС‚Р°РЅРґР°СЂС‚РЅС‹Рµ С‚РµСЃС‚С‹
+            insert into t_test (table_name,
+                                test_desc,
+                                test_sql,
+                                parent_table_name,
+                                n_test,
+                                column_name) values (r.table_name,
+                                                     'РџСЂРѕРІРµСЂРєР° РЅР° СЃРѕРІРїР°РґРµРЅРёРµ РёРЅРґРµРєСЃР° СЃ Р›Рњ',
+                                                     vSQL,
+                                                     null,
+                                                     42,
+                                                     null);
+                                                     
             commit;
 
-            -- сбор скрипта проверки уникальности индекса
+            -- СЃР±РѕСЂ СЃРєСЂРёРїС‚Р° РїСЂРѕРІРµСЂРєРё СѓРЅРёРєР°Р»СЊРЅРѕСЃС‚Рё РёРЅРґРµРєСЃР°
             vSQL := 'select uniqueness '  ||chr(10)||
                      'from   all_indexes '||chr(10)||
                      'where  table_owner = '''||r.owner||''' and '     ||chr(10)|| 
@@ -162,19 +162,19 @@ begin
                      'select ''UNIQUE'' as uniqueness '||chr(10)||
                      'from   dual';
 
-            -- вставка в стандартные тесты
-            insert into uat_testuser.uat_test_standard (table_name,
-                                                        test_desc,
-                                                        test_sql,
-                                                        parent_table_name,
-                                                        n_test,
-                                                        column_name) values (r.table_name,
-                                                                             'Проверка на уникальность PK индекса',
-                                                                             vSQL,
-                                                                             null,
-                                                                             43,
-                                                                             null);
-                                                                             
+            -- РІСЃС‚Р°РІРєР° РІ СЃС‚Р°РЅРґР°СЂС‚РЅС‹Рµ С‚РµСЃС‚С‹
+            insert into t_test (table_name,
+                                test_desc,
+                                test_sql,
+                                parent_table_name,
+                                n_test,
+                                column_name) values (r.table_name,
+                                                     'РџСЂРѕРІРµСЂРєР° РЅР° СѓРЅРёРєР°Р»СЊРЅРѕСЃС‚СЊ PK РёРЅРґРµРєСЃР°',
+                                                     vSQL,
+                                                     null,
+                                                     43,
+                                                     null);
+                                                     
             commit;
         
         end if;
@@ -183,7 +183,7 @@ begin
     
 exception
     when others then
-        dbms_output.put_line('Ошибка '  ||chr(10)||
+        dbms_output.put_line('РћС€РёР±РєР° '  ||chr(10)||
         dbms_utility.format_error_stack||
         dbms_utility.format_error_backtrace());
         commit;
